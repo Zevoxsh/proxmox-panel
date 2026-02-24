@@ -18,11 +18,13 @@ const registerSchema = z.object({
 });
 
 function setAuthCookie(res: any, token: string) {
+  const secureEnv = process.env.COOKIE_SECURE;
   const isProd = process.env.NODE_ENV === "production";
+  const isSecure = secureEnv ? secureEnv === "true" : isProd;
   res.cookie("pp_session", token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: isProd,
+    secure: isSecure,
     path: "/",
     maxAge: 1000 * 60 * 60 * 24 * 7,
   });
