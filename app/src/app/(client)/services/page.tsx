@@ -118,7 +118,7 @@ export default async function ServicesPage() {
             {vms.map((vm) => (
               <Link
                 key={vm.id}
-                href={`/vms/${vm.vmid}`}
+                href={`/vms/${vm.id}`}
                 className="rounded-xl border border-border/60 bg-card p-4 hover:border-primary/40 hover:bg-accent/40 transition-all"
               >
                 <div className="flex items-start justify-between gap-3">
