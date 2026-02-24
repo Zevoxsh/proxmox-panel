@@ -1,14 +1,12 @@
 import { auth } from "@/lib/auth";
 import { serverFetch } from "@/lib/server-api";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Check, Gamepad2, Server } from "lucide-react";
-import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { redirect } from "next/navigation";
-import { AddToCartButton } from "@/components/cart/add-to-cart-button";
+import { BuyNowButton } from "@/components/checkout/buy-now-button";
 
 type VmPlan = {
   id: string;
@@ -65,9 +63,6 @@ export default async function OrderPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link href="/cart">Voir le panier</Link>
-          </Button>
           <Badge variant="secondary">Catalogue</Badge>
         </div>
       </div>
@@ -132,14 +127,7 @@ export default async function OrderPage() {
                               {fmtBandwidth(plan.bandwidthGb)}
                             </div>
                           </div>
-                          <AddToCartButton
-                            item={{
-                              id: plan.id,
-                              type: "VPS",
-                              name: plan.name,
-                              priceMonthly: plan.priceMonthly,
-                            }}
-                          />
+                          <BuyNowButton planId={plan.id} planType="VPS" />
                         </CardContent>
                       </Card>
                     ))}
@@ -187,14 +175,7 @@ export default async function OrderPage() {
                               {fmtBandwidth(plan.bandwidthGb)}
                             </div>
                           </div>
-                          <AddToCartButton
-                            item={{
-                              id: plan.id,
-                              type: "VPS",
-                              name: plan.name,
-                              priceMonthly: plan.priceMonthly,
-                            }}
-                          />
+                          <BuyNowButton planId={plan.id} planType="VPS" />
                         </CardContent>
                       </Card>
                     ))}
@@ -249,14 +230,7 @@ export default async function OrderPage() {
                         {plan.diskMb} Mo SSD
                       </div>
                     </div>
-                    <AddToCartButton
-                      item={{
-                        id: plan.id,
-                        type: "GAME",
-                        name: plan.name,
-                        priceMonthly: plan.priceMonthly,
-                      }}
-                    />
+                    <BuyNowButton planId={plan.id} planType="GAME" />
                   </CardContent>
                 </Card>
               ))}

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { query } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
-import { createOrRetrieveCustomer, createCheckoutSession, createBillingPortalSession, constructWebhookEvent } from "../lib/stripe.js";
+import { createOrRetrieveCustomer, createCheckoutSession, createBillingPortalSession, constructWebhookEvent, createProductAndPrice } from "../lib/stripe.js";
 import { createPteroAppClient } from "../lib/pterodactyl.js";
 import { createProxmoxClient } from "../lib/proxmox.js";
 import Stripe from "stripe";
@@ -36,19 +36,32 @@ router.post("/checkout", requireAuth, async (req, res) => {
   for (const item of items) {
     const planRes = await query<{
       id: string;
+      name: string;
+      price_monthly: string;
       stripe_price_id: string | null;
     }>(
       item.type === "GAME"
-        ? "SELECT id, stripe_price_id FROM game_plans WHERE id = $1 AND is_active = true"
-        : "SELECT id, stripe_price_id FROM vm_plans WHERE id = $1 AND is_active = true",
+        ? "SELECT id, name, price_monthly, stripe_price_id FROM game_plans WHERE id = $1 AND is_active = true"
+        : "SELECT id, name, price_monthly, stripe_price_id FROM vm_plans WHERE id = $1 AND is_active = true",
       [item.planId]
     );
     const plan = planRes.rows[0];
     if (!plan) return res.status(404).json({ error: "Plan introuvable" });
-    if (!plan.stripe_price_id) {
-      return res.status(400).json({ error: "Ce plan n'a pas de prix Stripe configuré" });
+    let priceId = plan.stripe_price_id;
+    if (!priceId) {
+      try {
+        priceId = await createProductAndPrice(plan.name, Number(plan.price_monthly));
+        await query(
+          item.type === "GAME"
+            ? "UPDATE game_plans SET stripe_price_id = $1 WHERE id = $2"
+            : "UPDATE vm_plans SET stripe_price_id = $1 WHERE id = $2",
+          [priceId, plan.id]
+        );
+      } catch {
+        return res.status(400).json({ error: "Prix Stripe introuvable ou impossible à créer" });
+      }
     }
-    priceIds.push(plan.stripe_price_id);
+    priceIds.push(priceId);
   }
 
   const userRes = await query<{

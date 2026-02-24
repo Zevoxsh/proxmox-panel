@@ -27,7 +27,6 @@ const clientNav: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Mes services", href: "/services", icon: Package },
   { label: "Commander", href: "/order", icon: ShoppingCart },
-  { label: "Panier", href: "/cart", icon: ShoppingCart },
   { label: "Facturation", href: "/billing", icon: CreditCard },
 ];
 

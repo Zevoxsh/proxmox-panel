@@ -473,9 +473,10 @@ router.post("/order", requireAuth, async (req, res) => {
     cpu: number;
     ram_mb: number;
     disk_gb: number;
+    price_monthly: string;
     stripe_price_id: string | null;
   }>(
-    "SELECT id, name, type, cpu, ram_mb, disk_gb, stripe_price_id FROM vm_plans WHERE id = $1 AND is_active = true",
+    "SELECT id, name, type, cpu, ram_mb, disk_gb, price_monthly, stripe_price_id FROM vm_plans WHERE id = $1 AND is_active = true",
     [planId]
   );
   const plan = planRes.rows[0];
@@ -484,10 +485,16 @@ router.post("/order", requireAuth, async (req, res) => {
   const hostname = generateHostname(plan.name);
 
   const stripeKey = process.env.STRIPE_SECRET_KEY;
-  if (stripeKey && !stripeKey.includes("placeholder") && plan.stripe_price_id) {
+  if (stripeKey && !stripeKey.includes("placeholder")) {
     try {
       const Stripe = (await import("stripe")).default;
       const client = new Stripe(stripeKey, { apiVersion: "2024-12-18.acacia" as never });
+      let priceId = plan.stripe_price_id;
+      if (!priceId) {
+        const { createProductAndPrice } = await import("../lib/stripe.js");
+        priceId = await createProductAndPrice(plan.name, Number(plan.price_monthly));
+        await query("UPDATE vm_plans SET stripe_price_id = $1 WHERE id = $2", [priceId, plan.id]);
+      }
 
       const userRes = await query<{ id: string; email: string; name: string | null; stripe_customer_id: string | null }>(
         "SELECT id, email, name, stripe_customer_id FROM users WHERE id = $1",
@@ -506,7 +513,7 @@ router.post("/order", requireAuth, async (req, res) => {
       const origin = req.headers.origin ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3002";
       const checkoutSession = await client.checkout.sessions.create({
         customer: customerId,
-        line_items: [{ price: plan.stripe_price_id, quantity: 1 }],
+        line_items: [{ price: priceId, quantity: 1 }],
         mode: "subscription",
         subscription_data: {
           metadata: {

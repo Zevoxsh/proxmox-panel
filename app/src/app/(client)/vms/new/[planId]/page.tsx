@@ -36,7 +36,6 @@ export default async function ConfigureVMPage({
   const kvmOsOptions = data.kvmOsOptions as OsOption[];
 
   const stripeReady =
-    !!plan.stripePriceId &&
     !!process.env.STRIPE_SECRET_KEY &&
     !process.env.STRIPE_SECRET_KEY.includes("placeholder");
 
