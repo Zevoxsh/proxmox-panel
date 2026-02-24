@@ -550,6 +550,22 @@ router.post("/vm-plans", requireAuth, requireAdmin, async (req, res) => {
   return res.status(201).json({ id: insert.rows[0]?.id });
 });
 
+router.delete("/vm-plans/:id", requireAuth, requireAdmin, async (req, res) => {
+  const planId = req.params.id;
+  const usedRes = await query<{ count: string }>(
+    "SELECT COUNT(*)::int AS count FROM vms WHERE plan_id = $1",
+    [planId]
+  );
+  const usedCount = Number(usedRes.rows[0]?.count ?? 0);
+  if (usedCount > 0) {
+    return res.status(409).json({ error: "Plan utilisé par des VMs" });
+  }
+
+  const del = await query("DELETE FROM vm_plans WHERE id = $1", [planId]);
+  if (del.rowCount === 0) return res.status(404).json({ error: "Plan introuvable" });
+  return res.json({ ok: true });
+});
+
 router.get("/users", requireAuth, requireAdmin, async (req, res) => {
   const page = Number(req.query.page ?? 1);
   const limit = Number(req.query.limit ?? 20);

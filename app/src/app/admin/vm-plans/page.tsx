@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AddVmPlanForm } from "@/components/admin/add-vm-plan-form";
 import { formatCurrency } from "@/lib/utils";
 import { Cpu, Server } from "lucide-react";
+import { DeleteVmPlanButton } from "@/components/admin/delete-vm-plan-button";
 
 type VmPlan = {
   id: string;
@@ -59,11 +60,14 @@ export default async function AdminVmPlansPage() {
                     <p className="font-semibold truncate">{plan.name}</p>
                     <p className="text-xs text-muted-foreground">{plan.description ?? plan.type}</p>
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="font-display text-lg font-semibold text-primary">
-                      {formatCurrency(plan.priceMonthly)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">/mois</p>
+                  <div className="text-right shrink-0 space-y-2">
+                    <div>
+                      <p className="font-display text-lg font-semibold text-primary">
+                        {formatCurrency(plan.priceMonthly)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">/mois</p>
+                    </div>
+                    <DeleteVmPlanButton planId={plan.id} />
                   </div>
                 </div>
 

@@ -1,4 +1,5 @@
 import { serverFetch } from "@/lib/server-api";
+import { formatDate } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { AddPteroPanel } from "@/components/admin/add-ptero-panel";
 import { ExternalLink, Server, CheckCircle, XCircle, ShieldCheck } from "lucide-react";
@@ -78,7 +79,7 @@ export default async function AdminPteroPanelsPage() {
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Ajouté le {new Intl.DateTimeFormat("fr-FR").format(new Date(panel.createdAt))}
+                  Ajouté le {formatDate(panel.createdAt)}
                 </p>
               </CardContent>
             </Card>

@@ -18,11 +18,13 @@ export function formatCurrency(amount: number, currency = "EUR"): string {
 }
 
 export function formatDate(date: Date | string): string {
+  const d = date instanceof Date ? date : new Date(date);
+  if (!Number.isFinite(d.getTime())) return "—";
   return new Intl.DateTimeFormat("fr-FR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-  }).format(new Date(date));
+  }).format(d);
 }
 
 export function getStatusColor(status: string): string {
