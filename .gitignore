@@ -1,0 +1,23 @@
+# Environment
+.env
+.env.local
+.env.production
+
+# Node
+node_modules/
+.npm
+
+# Next.js
+app/.next/
+app/out/
+
+# Build
+dist/
+build/
+
+# Nginx certs
+nginx/certs/
+
+# Misc
+.DS_Store
+*.log
