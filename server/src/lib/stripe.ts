@@ -6,30 +6,26 @@ function getStripe(): Stripe {
   if (stripeClient) return stripeClient;
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key || key.includes("placeholder")) {
-    throw new Error("Stripe is not configured");
+    throw new Error("Stripe not configured");
   }
   stripeClient = new Stripe(key, {
-    apiVersion: "2025-02-24.acacia",
+    apiVersion: "2024-06-20",
     typescript: true,
   });
   return stripeClient;
 }
 
-export async function createOrRetrieveCustomer(
-  email: string,
-  name?: string | null
-): Promise<string> {
+export async function createOrRetrieveCustomer(email: string, name?: string | null): Promise<string> {
   const stripe = getStripe();
   const existing = await stripe.customers.list({ email, limit: 1 });
   if (existing.data.length > 0) return existing.data[0].id;
-
   const customer = await stripe.customers.create({ email, name: name ?? undefined });
   return customer.id;
 }
 
 export async function createCheckoutSession(
   customerId: string,
-  stripePriceIds: string[],
+  stripePriceId: string,
   successUrl: string,
   cancelUrl: string,
   metadata?: Record<string, string>
@@ -39,7 +35,7 @@ export async function createCheckoutSession(
     customer: customerId,
     mode: "subscription",
     payment_method_types: ["card"],
-    line_items: stripePriceIds.map((price) => ({ price, quantity: 1 })),
+    line_items: [{ price: stripePriceId, quantity: 1 }],
     success_url: successUrl,
     cancel_url: cancelUrl,
     metadata,
@@ -48,10 +44,7 @@ export async function createCheckoutSession(
   return session.url!;
 }
 
-export async function createProductAndPrice(
-  name: string,
-  priceMonthly: number
-): Promise<string> {
+export async function createProductAndPrice(name: string, priceMonthly: number): Promise<string> {
   const stripe = getStripe();
   const product = await stripe.products.create({ name });
   const price = await stripe.prices.create({
@@ -63,10 +56,7 @@ export async function createProductAndPrice(
   return price.id;
 }
 
-export async function createBillingPortalSession(
-  customerId: string,
-  returnUrl: string
-): Promise<string> {
+export async function createBillingPortalSession(customerId: string, returnUrl: string): Promise<string> {
   const stripe = getStripe();
   const session = await stripe.billingPortal.sessions.create({
     customer: customerId,
@@ -75,14 +65,7 @@ export async function createBillingPortalSession(
   return session.url;
 }
 
-export function constructWebhookEvent(
-  payload: string | Buffer,
-  signature: string
-): Stripe.Event {
+export function constructWebhookEvent(payload: string | Buffer, signature: string): Stripe.Event {
   const stripe = getStripe();
-  return stripe.webhooks.constructEvent(
-    payload,
-    signature,
-    process.env.STRIPE_WEBHOOK_SECRET!
-  );
+  return stripe.webhooks.constructEvent(payload, signature, process.env.STRIPE_WEBHOOK_SECRET!);
 }

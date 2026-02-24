@@ -13,9 +13,5 @@ export async function serverFetch(path: string, init: RequestInit = {}) {
   const cookieHeader = await buildCookieHeader();
   const headers = new Headers(init.headers);
   if (cookieHeader) headers.set("Cookie", cookieHeader);
-  return fetch(`${serverBaseUrl}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store",
-  });
+  return fetch(`${serverBaseUrl}${path}`, { ...init, headers, cache: "no-store" });
 }

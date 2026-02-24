@@ -1,79 +1,72 @@
 import { Router } from "express";
-import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { query } from "../db.js";
-import { requireAuth, signJwt } from "../middleware/auth.js";
+import { signJwt, requireAuth } from "../middleware/auth.js";
 
 const router = Router();
 
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-});
-
-const registerSchema = z.object({
-  name: z.string().min(2).max(120),
-  email: z.string().email(),
-  password: z.string().min(8),
-});
-
-function setAuthCookie(res: any, token: string) {
-  const secureEnv = process.env.COOKIE_SECURE;
+function cookieOptions() {
   const isProd = process.env.NODE_ENV === "production";
-  const isSecure = secureEnv ? secureEnv === "true" : isProd;
-  res.cookie("pp_session", token, {
+  const secureEnv = process.env.COOKIE_SECURE;
+  const secure = secureEnv ? secureEnv === "true" : isProd;
+  return {
     httpOnly: true,
-    sameSite: "lax",
-    secure: isSecure,
+    secure,
+    sameSite: "lax" as const,
     path: "/",
     maxAge: 1000 * 60 * 60 * 24 * 7,
-  });
+  };
 }
 
-router.post("/login", async (req, res) => {
-  const parsed = loginSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Invalid payload" });
-  const { email, password } = parsed.data;
+router.post("/register", async (req, res) => {
+  const { email, password, name } = req.body as { email?: string; password?: string; name?: string };
+  if (!email || !password) return res.status(400).json({ error: "Email et mot de passe requis" });
+  const existing = await query("SELECT id FROM users WHERE email = $1", [email]);
+  if (existing.rows.length > 0) return res.status(409).json({ error: "Email déjà utilisé" });
 
-  const result = await query<{ id: string; email: string; password: string; role: "USER" | "ADMIN" }>(
-    "SELECT id, email, password, role FROM users WHERE email = $1",
-    [email]
+  const hash = await bcrypt.hash(password, 10);
+  const insert = await query<{ id: string; role: string }>(
+    "INSERT INTO users (email, password_hash, role, name) VALUES ($1,$2,'USER',$3) RETURNING id, role",
+    [email, hash, name ?? null]
   );
-  const user = result.rows[0];
-  if (!user) return res.status(401).json({ error: "Invalid credentials" });
-
-  const ok = await bcrypt.compare(password, user.password);
-  if (!ok) return res.status(401).json({ error: "Invalid credentials" });
-
-  const token = signJwt({ id: user.id, email: user.email, role: user.role });
-  setAuthCookie(res, token);
+  const user = insert.rows[0];
+  const token = signJwt({ id: user.id, email, role: user.role as "USER" });
+  res.cookie("pp_session", token, cookieOptions());
   return res.json({ ok: true });
 });
 
-router.post("/register", async (req, res) => {
-  const parsed = registerSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Invalid payload" });
-  const { name, email, password } = parsed.data;
+router.post("/login", async (req, res) => {
+  const { email, password } = req.body as { email?: string; password?: string };
+  if (!email || !password) return res.status(400).json({ error: "Email et mot de passe requis" });
 
-  const existing = await query("SELECT id FROM users WHERE email = $1", [email]);
-  if (existing.rowCount) return res.status(409).json({ error: "Email already used" });
-
-  const hash = await bcrypt.hash(password, 10);
-  await query(
-    "INSERT INTO users (email, password, name) VALUES ($1, $2, $3)",
-    [email, hash, name]
+  const userRes = await query<{ id: string; email: string; password_hash: string; role: string; name: string | null }>(
+    "SELECT id, email, password_hash, role, name FROM users WHERE email = $1",
+    [email]
   );
+  const user = userRes.rows[0];
+  if (!user) return res.status(401).json({ error: "Identifiants invalides" });
 
-  return res.status(201).json({ ok: true });
+  const ok = await bcrypt.compare(password, user.password_hash);
+  if (!ok) return res.status(401).json({ error: "Identifiants invalides" });
+
+  const token = signJwt({ id: user.id, email: user.email, role: user.role as "USER" | "ADMIN" });
+  res.cookie("pp_session", token, cookieOptions());
+  return res.json({ ok: true });
 });
 
-router.post("/logout", (req, res) => {
+router.post("/logout", (_req, res) => {
   res.clearCookie("pp_session", { path: "/" });
   return res.json({ ok: true });
 });
 
 router.get("/me", requireAuth, async (req, res) => {
-  return res.json({ user: req.user });
+  const userRes = await query<{ id: string; email: string; role: string; name: string | null }>(
+    "SELECT id, email, role, name FROM users WHERE id = $1",
+    [req.user!.id]
+  );
+  const user = userRes.rows[0];
+  if (!user) return res.status(404).json({ error: "Utilisateur introuvable" });
+  return res.json({ user });
 });
 
 export default router;

@@ -7,9 +7,7 @@ export type SessionUser = {
   name?: string | null;
 };
 
-export type Session = {
-  user: SessionUser;
-};
+export type Session = { user: SessionUser };
 
 const serverBaseUrl = process.env.API_BASE_URL || "http://server:4000";
 
@@ -22,7 +20,6 @@ export async function auth(): Promise<Session | null> {
       headers: { Cookie: `pp_session=${token}` },
       cache: "no-store",
     });
-
     if (!res.ok) return null;
     const data = (await res.json()) as { user: SessionUser };
     return { user: data.user };
