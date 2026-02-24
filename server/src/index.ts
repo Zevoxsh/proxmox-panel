@@ -22,21 +22,20 @@ const corsOrigins = corsOriginEnv
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin) return callback(null, true);
-      const isLocal =
-        origin.startsWith("http://localhost") ||
-        origin.startsWith("http://127.0.0.1");
-      if (corsOrigins.includes(origin) || (process.env.NODE_ENV !== "production" && isLocal)) {
-        return callback(null, true);
-      }
-      return callback(new Error("Not allowed by CORS"));
-    },
-    credentials: true,
-  })
-);
+if (process.env.NODE_ENV !== "production") {
+  app.use(cors({ origin: true, credentials: true }));
+} else {
+  app.use(
+    cors({
+      origin(origin, callback) {
+        if (!origin) return callback(null, true);
+        if (corsOrigins.includes(origin)) return callback(null, true);
+        return callback(new Error("Not allowed by CORS"));
+      },
+      credentials: true,
+    })
+  );
+}
 app.use((req, res, next) => {
   if (req.originalUrl.startsWith("/stripe/webhook")) {
     return express.raw({ type: "application/json" })(req, res, next);

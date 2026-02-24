@@ -8,6 +8,22 @@ import { createProductAndPrice } from "../lib/stripe.js";
 
 const router = Router();
 
+async function tryCreateStripePrice(name: string, priceMonthly: number) {
+  if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY.includes("placeholder")) {
+    return null;
+  }
+  try {
+    const timeoutMs = 5000;
+    const priceId = await Promise.race([
+      createProductAndPrice(name, priceMonthly),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+    ]);
+    return priceId;
+  } catch {
+    return null;
+  }
+}
+
 const nodeSchema = z.object({
   name: z.string().min(1),
   host: z.string().min(1),
@@ -474,14 +490,7 @@ router.post("/game-plans", requireAuth, requireAdmin, async (req, res) => {
   const panelRes = await query<{ id: string }>("SELECT id FROM ptero_panels WHERE id = $1", [parsed.data.panelId]);
   if (panelRes.rowCount === 0) return res.status(404).json({ error: "Panel introuvable" });
 
-  let stripePriceId = parsed.data.stripePriceId ?? null;
-  if (!stripePriceId && process.env.STRIPE_SECRET_KEY && !process.env.STRIPE_SECRET_KEY.includes("placeholder")) {
-    try {
-      stripePriceId = await createProductAndPrice(parsed.data.name, parsed.data.priceMonthly);
-    } catch {
-      stripePriceId = null;
-    }
-  }
+  const stripePriceId = await tryCreateStripePrice(parsed.data.name, parsed.data.priceMonthly);
 
   const insert = await query<{ id: string }>(
     `INSERT INTO game_plans
@@ -517,14 +526,7 @@ router.post("/vm-plans", requireAuth, requireAdmin, async (req, res) => {
   const parsed = vmPlanSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Données invalides" });
 
-  let stripePriceId = parsed.data.stripePriceId ?? null;
-  if (!stripePriceId && process.env.STRIPE_SECRET_KEY && !process.env.STRIPE_SECRET_KEY.includes("placeholder")) {
-    try {
-      stripePriceId = await createProductAndPrice(parsed.data.name, parsed.data.priceMonthly);
-    } catch {
-      stripePriceId = null;
-    }
-  }
+  const stripePriceId = await tryCreateStripePrice(parsed.data.name, parsed.data.priceMonthly);
 
   const insert = await query<{ id: string }>(
     `INSERT INTO vm_plans
