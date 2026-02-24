@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Check, Gamepad2, Server } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { redirect } from "next/navigation";
-import { BuyNowButton } from "@/components/checkout/buy-now-button";
+import { Button } from "@/components/ui/button";
 
 type VmPlan = {
   id: string;
@@ -127,7 +127,9 @@ export default async function OrderPage() {
                               {fmtBandwidth(plan.bandwidthGb)}
                             </div>
                           </div>
-                          <BuyNowButton planId={plan.id} planType="VPS" />
+                          <Button asChild className="w-full">
+                            <Link href={`/vms/new/${plan.id}`}>Configurer</Link>
+                          </Button>
                         </CardContent>
                       </Card>
                     ))}
@@ -175,7 +177,9 @@ export default async function OrderPage() {
                               {fmtBandwidth(plan.bandwidthGb)}
                             </div>
                           </div>
-                          <BuyNowButton planId={plan.id} planType="VPS" />
+                          <Button asChild className="w-full">
+                            <Link href={`/vms/new/${plan.id}`}>Configurer</Link>
+                          </Button>
                         </CardContent>
                       </Card>
                     ))}
@@ -230,7 +234,9 @@ export default async function OrderPage() {
                         {plan.diskMb} Mo SSD
                       </div>
                     </div>
-                    <BuyNowButton planId={plan.id} planType="GAME" />
+                    <Button asChild className="w-full">
+                      <Link href="/game-servers/new">Configurer</Link>
+                    </Button>
                   </CardContent>
                 </Card>
               ))}
@@ -241,3 +247,4 @@ export default async function OrderPage() {
     </div>
   );
 }
+import Link from "next/link";
