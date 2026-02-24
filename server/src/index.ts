@@ -17,6 +17,7 @@ const port = process.env.PORT ? Number(process.env.PORT) : 4000;
 
 const corsOrigin = process.env.CORS_ORIGIN;
 const originList = corsOrigin ? corsOrigin.split(",").map((o) => o.trim()) : [];
+const isProd = process.env.NODE_ENV === "production";
 
 app.use("/stripe/webhook", express.raw({ type: "application/json" }));
 
@@ -24,6 +25,7 @@ app.use(
   cors({
     origin: (origin: string | undefined, cb) => {
       if (!origin) return cb(null, true);
+      if (!isProd) return cb(null, true);
       if (originList.length === 0 || originList.includes(origin)) return cb(null, true);
       return cb(new Error("CORS blocked"), false);
     },
