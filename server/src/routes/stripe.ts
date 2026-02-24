@@ -22,7 +22,11 @@ const schema = z.object({
 
 router.post("/checkout", requireAuth, async (req, res) => {
   const parsed = schema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Données invalides" });
+  if (!parsed.success) {
+    // eslint-disable-next-line no-console
+    console.error("[stripe] invalid checkout payload", parsed.error.flatten());
+    return res.status(400).json({ error: "Données invalides" });
+  }
 
   const items = parsed.data.items?.length
     ? parsed.data.items
